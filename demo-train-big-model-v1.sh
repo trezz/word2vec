@@ -10,21 +10,18 @@
 
 # This function will convert text to lowercase and remove special characters
 normalize_text() {
-  LC_CTYPE=C awk '{print tolower($0);}' | sed -e "s/’/'/g" -e "s/′/'/g" -e "s/''/ /g" -e "s/'/ ' /g" -e "s/“/\"/g" -e "s/”/\"/g" \
-  -e 's/"/ " /g' -e 's/\./ \. /g' -e 's/<br \/>/ /g' -e 's/, / , /g' -e 's/(/ ( /g' -e 's/)/ ) /g' -e 's/\!/ \! /g' \
-  -e 's/\?/ \? /g' -e 's/\;/ /g' -e 's/\:/ /g' -e 's/-/ - /g' -e 's/=/ /g' -e 's/=/ /g' -e 's/*/ /g' -e 's/|/ /g' \
-  -e 's/«/ /g' | tr 0-9 " "
+   awk '{print tolower($0);}' | gsed -e 's/[^a-zA-Z0-9 \n\t\r]//g' -e 's/0-9/ /g'
 }
 
 if [ ! -f "news.2012.en.shuffled" ]; then
   wget http://www.statmt.org/wmt14/training-monolingual-news-crawl/news.2012.en.shuffled.gz
+  gzip -d news.2012.en.shuffled.gz
 fi
 if [ ! -f "news.2013.en.shuffled" ]; then
   wget http://www.statmt.org/wmt14/training-monolingual-news-crawl/news.2013.en.shuffled.gz
+  gzip -d news.2013.en.shuffled.gz
 fi
 
-gzip -d news.2012.en.shuffled.gz
-gzip -d news.2013.en.shuffled.gz
 normalize_text < news.2012.en.shuffled > data.txt
 normalize_text < news.2013.en.shuffled >> data.txt
 
@@ -35,6 +32,8 @@ tar -xvf 1-billion-word-language-modeling-benchmark-r13output.tar.gz
 for i in `ls 1-billion-word-language-modeling-benchmark-r13output/training-monolingual.tokenized.shuffled`; do
   normalize_text < 1-billion-word-language-modeling-benchmark-r13output/training-monolingual.tokenized.shuffled/$i >> data.txt
 done
+
+exit 0
 
 if [ ! -f "enwiki-latest-pages-articles.xml.bz2" ]; then
   wget http://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles.xml.bz2
