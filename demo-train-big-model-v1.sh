@@ -16,29 +16,37 @@ normalize_text() {
   -e 's/«/ /g' | tr 0-9 " "
 }
 
-mkdir word2vec
-cd word2vec
+if [ ! -f "news.2012.en.shuffled.gz" ]; then
+  wget http://www.statmt.org/wmt14/training-monolingual-news-crawl/news.2012.en.shuffled.gz
+fi
+if [ ! -f "news.2013.en.shuffled.gz" ]; then
+  wget http://www.statmt.org/wmt14/training-monolingual-news-crawl/news.2013.en.shuffled.gz
+fi
 
-wget http://www.statmt.org/wmt14/training-monolingual-news-crawl/news.2012.en.shuffled.gz
-wget http://www.statmt.org/wmt14/training-monolingual-news-crawl/news.2013.en.shuffled.gz
 gzip -d news.2012.en.shuffled.gz
 gzip -d news.2013.en.shuffled.gz
 normalize_text < news.2012.en.shuffled > data.txt
 normalize_text < news.2013.en.shuffled >> data.txt
 
-wget http://www.statmt.org/lm-benchmark/1-billion-word-language-modeling-benchmark-r13output.tar.gz
+if [ ! -f "1-billion-word-language-modeling-benchmark-r13output.tar.gz" ]; then
+  wget http://www.statmt.org/lm-benchmark/1-billion-word-language-modeling-benchmark-r13output.tar.gz
+fi
 tar -xvf 1-billion-word-language-modeling-benchmark-r13output.tar.gz
 for i in `ls 1-billion-word-language-modeling-benchmark-r13output/training-monolingual.tokenized.shuffled`; do
   normalize_text < 1-billion-word-language-modeling-benchmark-r13output/training-monolingual.tokenized.shuffled/$i >> data.txt
 done
 
-wget http://ebiquity.umbc.edu/redirect/to/resource/id/351/UMBC-webbase-corpus
+if [ ! -f "umbc_webbase_corpus.tar.gz" ]; then
+  wget http://ebiquity.umbc.edu/redirect/to/resource/id/351/UMBC-webbase-corpus
+fi
 tar -zxvf umbc_webbase_corpus.tar.gz webbase_all/*.txt
 for i in `ls webbase_all`; do
   normalize_text < webbase_all/$i >> data.txt
 done
 
-wget http://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles.xml.bz2
+if [ ! -f "enwiki-latest-pages-articles.xml.bz2" ]; then
+  wget http://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles.xml.bz2
+fi
 bzip2 -c -d enwiki-latest-pages-articles.xml.bz2 | awk '{print tolower($0);}' | perl -e '
 # Program to filter Wikipedia XML dumps to "clean" text consisting only of lowercase
 # letters (a-z, converted from A-Z), and spaces (never consecutive)...
@@ -85,14 +93,6 @@ while (<>) {
 }
 ' | normalize_text | awk '{if (NF>1) print;}' >> data.txt
 
-wget http://word2vec.googlecode.com/svn/trunk/word2vec.c
-wget http://word2vec.googlecode.com/svn/trunk/word2phrase.c
-wget http://word2vec.googlecode.com/svn/trunk/compute-accuracy.c
-wget http://word2vec.googlecode.com/svn/trunk/questions-words.txt
-wget http://word2vec.googlecode.com/svn/trunk/questions-phrases.txt
-gcc word2vec.c -o word2vec -lm -pthread -O3 -march=native -funroll-loops
-gcc word2phrase.c -o word2phrase -lm -pthread -O3 -march=native -funroll-loops
-gcc compute-accuracy.c -o compute-accuracy -lm -pthread -O3 -march=native -funroll-loops
 ./word2phrase -train data.txt -output data-phrase.txt -threshold 200 -debug 2
 ./word2phrase -train data-phrase.txt -output data-phrase2.txt -threshold 100 -debug 2
 ./word2vec -train data-phrase2.txt -output vectors.bin -cbow 1 -size 500 -window 10 -negative 10 -hs 0 -sample 1e-5 -threads 40 -binary 1 -iter 3 -min-count 10
